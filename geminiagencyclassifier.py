@@ -6,10 +6,10 @@
 # !pip install gspread
 # !pip install smtplib
 
+
 import os
 
 # Set your Gemini API key
-os.environ["GEMINI_API_KEY"] = "AIzaSyDU-AUGcVUZNGlEyyxtGlpVwgYKC3Qd91U"
 
 
 import requests
@@ -23,6 +23,7 @@ def scrape_website(url):
         soup = BeautifulSoup(response.text, "html.parser")
         text = soup.get_text()
         text=text.replace("\n"," ")
+        text=text.replace("|"," ")
         text=text.replace(",","")
         text=text.replace("   "," ")
 
@@ -31,22 +32,22 @@ def scrape_website(url):
         return None
 
 
+
 import os
 import google.generativeai as genai
+from dotenv import load_dotenv
 
 def classify_agency(content):
     """Classify the agency website using a Gemini fine-tuned model."""
 
-    # Ensure API key is set correctly
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key=open('GEMINI_API_KEY').read()
     if not api_key:
         raise ValueError("GEMINI_API_KEY environment variable is not set.")
 
-    genai.configure(api_key=api_key)  # Set API key
+    genai.configure(api_key=api_key)  
 
-    model_name = "gemini-1.5-flash"  # Use the correct model name
+    model_name = "gemini-1.5-flash"  
 
-    # Define the formatted prompt
     formatted_prompt = f"""
     You are an AI designed to classify websites into agencies or non-agencies. 
     The website content is given below:
@@ -65,13 +66,11 @@ def classify_agency(content):
     - "REJECT | Confidence: 8/10 | Reason: The website is an e-commerce store, not an agency."
     """
 
-    # Load the Gemini model
     model = genai.GenerativeModel(model_name)
 
-    # Generate response
     response = model.generate_content(formatted_prompt)
 
-    return response.text  # Extract and return the response text
+    return response.text 
 
 
 
@@ -98,8 +97,10 @@ from email.message import EmailMessage
 
 def send_email(recipient, subject, body):
     """Send email notification."""
-    EMAIL = "divyeshashok004@gmail.com"
-    PASSWORD = "rebx dyhl zstt bmub"
+    # EMAIL = os.getenv("EMAIL_SENDER")
+    # PASSWORD = os.getenv("EMAIL_PASSWORD")
+    EMAIL=open('EMAIL_SENDER').read()
+    PASSWORD=open('EMAIL_PASSWORD').read()
 
     msg = EmailMessage()
     msg["Subject"] = subject
@@ -123,7 +124,7 @@ def main(url,mail):
         return
     # print(content)
     response = classify_agency(content)
-    # print('respomse',response)
+    print('respomse',response)
     # Extract decision, confidence, and reason
     decision, confidence, reason = response.split("|")
     print("de", decision)
@@ -136,21 +137,55 @@ def main(url,mail):
 
     # Send email
     t="APPROVE"
+    # if t in decision:
+    #     send_email(mail, "Welcome to CookieYes!", "You have been approved!")
+    # else:
+    #     send_email(mail, "Application Declined", "Unfortunately, you did not meet the requirements.")\
+
     if t in decision:
-        send_email(mail, "Welcome to CookieYes!", "You have been approved!")
+        subject = "Agency Approval Notification - CookieYes"
+        body = f"""
+        Hello,
+
+        We are pleased to inform you that your website has been successfully classified as an agency!
+
+        📝 **Reason:** {reason}
+
+        If you have any questions or require further assistance, feel free to reply to this email.
+
+        Best regards,  
+        CookieYes Team  
+        [Your Website or Contact Info]
+        """
+        send_email(mail, subject, body)
     else:
-        send_email(mail, "Application Declined", "Unfortunately, you did not meet the requirements.")
+        subject = "Agency Classification Result - CookieYes"
+        body = f"""
+        Hello,
+
+        After reviewing your website, we regret to inform you that it does not meet the criteria for agency classification.
+
+        📝 **Reason:** {reason}
+
+        If you believe this decision was made in error, feel free to contact us for a review.
+
+        Best regards,  
+        CookieYes Team  
+        [Your Website or Contact Info]
+        """
+        send_email(mail, subject, body)
+
 
 # Example URLs
 urls = [
-    "https://www.digitalsilk.com/",
-    "https://fourbynorth.com/",
-    "https://fashionunited.com/i/most-valuable-fashion-brands"
+    "https://www.webfx.com/",
+    "https://www.ogilvy.com/",
+    "https://techcrunch.com/"
 ]
 emal=[
     "21br14301@rit.ac.in",
     "divyeshashok004@gmail.com",
-    "anandes123@gmail.com"
+    "sreejithjnv1962@gmail.com"
 ]
 
 for url in range(len(urls)):
